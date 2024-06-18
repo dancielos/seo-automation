@@ -15,6 +15,7 @@ const COMMON_WORDS = [
 	'in',
 	'an',
 	'that',
+	'to',
 ];
 const EXCLUDED_WORDS_MAP = new Map();
 
@@ -35,12 +36,40 @@ function getNGrams(values, n = 1) {
 	values.forEach((val) => {
 		const words = ('' + val).toLowerCase().split(' ');
 
-		words.forEach((word) => {
-			const frequency = nGrams.get('' + word) ?? 0;
-			// Logger.log({word, frequency})
-			if (!EXCLUDED_WORDS_MAP.get(word)) nGrams.set('' + word, frequency + 1);
-		});
+		// words.forEach((word) => {
+		// 	const frequency = nGrams.get('' + word) ?? 0;
+		// 	// Logger.log({word, frequency})
+		// 	if (!EXCLUDED_WORDS_MAP.get(word)) nGrams.set('' + word, frequency + 1);
+		// });
+
+		// using Sliding window for multigram
+		// NOTE: I'll only limit it to 3-grams
+		let left = 0,
+			right = 0,
+			currentWords = [];
+		while (left < words.length) {
+			const word = words[right];
+			// first check the words[right]
+			// also, check if the current word[right] is part of excluded
+			const distance = right - left + 1;
+			if (distance > 3 || !word) {
+				currentWords = [];
+				left++;
+				right = left;
+				continue;
+			}
+			right++;
+			if (distance === 1 && EXCLUDED_WORDS_MAP.get(word)) continue;
+
+			currentWords.push(word);
+			const joinedWords = currentWords.join(' ');
+			const frequency = nGrams.get(joinedWords) ?? 0;
+			nGrams.set(joinedWords, frequency + 1);
+			// then, move the right pointer, check those two words
+			// move the right pointer again, check those three words
+		}
 	});
+	// the minimum frequency should be 2.
 	return Array.from(nGrams.entries());
 }
 
