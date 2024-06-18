@@ -70,7 +70,10 @@ function getNGrams(values, n = 1) {
 		}
 	});
 	// the minimum frequency should be 2.
-	return Array.from(nGrams.entries());
+
+	return Array.from(nGrams.entries()).filter(([ngram, frequency]) => {
+		if (frequency > 2) return [ngram, frequency];
+	});
 }
 
 function testGetNGrams() {
