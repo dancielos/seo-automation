@@ -26,33 +26,23 @@ COMMON_WORDS.forEach((w) => EXCLUDED_WORDS_MAP.set(w, 1));
 // US, u.s.
 // review, reviews
 // builder, builders
-// [] implement multigram, which should make use of the sliding window algo
-// using that algo will be faster as it will run at O(n) instead of O(ngram * n)
 // [] implement the volume per keyword and count those too
 
-function getNGrams(values, n = 1) {
-	// to implement
+function getNGrams(values, volumes = 0, n = 3, minFrequency = 3) {
+	if (values.length !== volumes.length)
+		return 'ERROR: argument 1 (values) and argument 2(volumes) should have equal length';
 	const nGrams = new Map();
-	values.forEach((val) => {
+	values.forEach((val, i) => {
 		const words = ('' + val).toLowerCase().split(' ');
 
-		// words.forEach((word) => {
-		// 	const frequency = nGrams.get('' + word) ?? 0;
-		// 	// Logger.log({word, frequency})
-		// 	if (!EXCLUDED_WORDS_MAP.get(word)) nGrams.set('' + word, frequency + 1);
-		// });
-
-		// using Sliding window for multigram
-		// NOTE: I'll only limit it to 3-grams
+		// using Sliding window
 		let left = 0,
 			right = 0,
 			currentWords = [];
 		while (left < words.length) {
 			const word = words[right];
-			// first check the words[right]
-			// also, check if the current word[right] is part of excluded
 			const distance = right - left + 1;
-			if (distance > 3 || !word) {
+			if (distance > n || !word) {
 				currentWords = [];
 				left++;
 				right = left;
@@ -63,24 +53,28 @@ function getNGrams(values, n = 1) {
 
 			currentWords.push(word);
 			const joinedWords = currentWords.join(' ');
-			const frequency = nGrams.get(joinedWords) ?? 0;
-			nGrams.set(joinedWords, frequency + 1);
-			// then, move the right pointer, check those two words
-			// move the right pointer again, check those three words
+			const frequency = (nGrams.get(joinedWords)?.at(0) ?? 0) + 1;
+			const volume =
+				Number(nGrams.get(joinedWords)?.at(1) ?? 0) + Number(volumes[i]);
+			nGrams.set(joinedWords, [frequency, volume]);
 		}
 	});
-	// the minimum frequency should be 2.
 
-	return Array.from(nGrams.entries()).filter(([ngram, frequency]) => {
-		if (frequency > 2) return [ngram, frequency];
-	});
+	return Array.from(nGrams.entries())
+		.filter(([ngram, val]) => {
+			Logger.log(ngram, val);
+			return val[0] > minFrequency;
+		})
+		.map(([ngram, val]) => {
+			return [ngram, val[0], val[1]];
+		});
 }
 
 function testGetNGrams() {
 	Logger.log('testing...');
 	const sheet = SpreadsheetApp.getActiveSheet();
-	const values = sheet.getRange('A2:A20').getValues();
+	const range1 = sheet.getRange('A2:A20').getValues();
+	const range2 = sheet.getRange('C2:C20').getValues();
 
-	Logger.log(values);
-	Logger.log(getNGrams(values));
+	Logger.log(getNGrams(range1, range2));
 }
